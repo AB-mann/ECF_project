@@ -1,0 +1,67 @@
+energy = energy.groupby('day')[['energy_sum']].sum()
+energy = energy.merge(housecount, on = ['day'])
+energy = energy.reset_index()
+
+K=range(1,10)   # Here K denotes the provisional cluster numbers taken under consideration
+inertia = []
+for k in K:
+    kmeans=KMeans(n_clusters=k, random_state=40, n_init=10).fit(X)
+    inertia.append(kmeans.inertia_)  
+print(inertia)
+
+kmeans = KMeans(n_clusters=6, max_iter=600, algorithm = 'auto')
+kmeans.fit(weather_scaled)
+weather_energy['weather_cluster'] = kmeans.labels_
+
+clusterNum = 6
+k_means = KMeans(init="k-means++",n_clusters = clusterNum, n_init=12)
+k_means.fit(Y)
+labels = k_means.labels_
+print(labels)
+
+weather_energy = weather_energy.merge(holiday, left_on = 'day',right_on = 'Bank holidays',how = 'left')
+weather_energy['holiday_index'] = np.where(weather_energy['Bank holidays'].isna(),0,1)
+
+weather_model_data = weather_energy[['avg_energy','weather_cluster','holiday_index']]
+
+train = weather_model_data.iloc[0:(len(weather_model_data)-30)]
+test = weather_model_data.iloc[len(train):(len(weather_model_data)-1)]
+
+weather_model_data['avg_energy seasonal difference'] = weather_model_data['avg_energy'] - weather_model_data['avg_energy'].shift(90)
+
+from statsmodels.tsa.arima.model import ARIMA
+from pmdarima import auto_arima
+train = weather_model_data.iloc[0:(len(weather_model_data)-30)]
+test = weather_model_data.iloc[len(train):(len(weather_model_data)-1)]
+stepwise_fit= auto_arima(weather_model_data['avg_energy'],trace=True)
+
+model_1 = ARIMA(weather_model_data['avg_energy'],order=(4,1,2))
+model_1 = model_1.fit()
+
+pred1 = model_1.predict(start=len(df),end=len(df)+30,typ='levels').rename('ARIMA Predictions')
+pred1.index = index_future_dates
+
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from statsmodels.tsa.statespace.sarimax import SARIMAXResultsWrapper
+train = weather_model_data.iloc[0:(len(weather_model_data)-30)]
+test = weather_model_data.iloc[len(train):(len(weather_model_data)-1)]
+
+endog = train['avg_energy']
+exog = sm.add_constant(train[['weather_cluster','holiday_index']])
+model = SARIMAX(endog, exog=exog, order=(4, 1, 2), seasonal_order=(1, 1, 0, 12))
+results = model.fit()
+
+predict = results.get_forecast(steps=len(test), exog=sm.add_constant(test[['weather_cluster', 'holiday_index']]))
+test['predicted'] = predict.predicted_mean.values
+test.tail(5)
+
+test['residual'] = abs(test['avg_energy'] - test['predicted'])
+MAE = test['residual'].sum() / len(test)
+MAPE = (abs(test['residual']) / test['avg_energy']).sum() * 100 / len(test)
+print("MAE:", MAE)
+print("MAPE:", MAPE)
+
+from sklearn.metrics import mean_squared_error
+from math import sqrt
+rmse = sqrt(mean_squared_error(test['avg_energy'],test['predicted']))
+print(rmse)

@@ -1,0 +1,49 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import pickle
+import statsmodels.api as sm
+
+# Load the SARIMAX model from the pickle file
+filename = "C:/Users/ABHIMAN/Music/trainingmodel.pkl"
+loaded_model = pickle.load(open(filename, 'rb'))
+
+
+
+# Function to get forecast based on user input
+def get_forecast(avg_energy, weather_cluster, holiday_index):
+    # Prepare input features based on the provided avg_energy
+    input_features = pd.DataFrame({'avg_energy': [avg_energy],
+                                    'weather_cluster': [weather_cluster],
+                                    'holiday_index': [holiday_index]})
+
+    # Use the loaded SARIMAX model to get the forecast
+    exog_features = sm.add_constant(input_features[['weather_cluster', 'holiday_index', 'avg_energy']])
+    forecast = loaded_model.get_forecast(steps=1, exog=exog_features.iloc[0])
+
+    # Convert predicted_mean to a DataFrame and access the first value
+    forecast_result = pd.DataFrame(forecast.predicted_mean).iloc[0, 0]
+
+    # Return the forecast result
+    return forecast_result
+
+
+# Streamlit App
+def main():
+    st.title("Energy Consumption Forecasting App")
+
+    # Sidebar for user input
+    st.sidebar.header("User Input")
+    avg_energy = st.sidebar.number_input("Enter Average Energy Consumption", min_value=0.0, value=0.0)
+    weather_cluster = st.sidebar.slider("Weather Cluster", min_value=0, max_value=5, value=0)
+    holiday_index = st.sidebar.slider("Holiday Index", min_value=0, max_value=1, value=0)
+
+    # Button to trigger prediction
+    if st.button("Predict Energy Consumption"):
+        # Call the get_forecast function with user-provided input features
+        forecast_result = get_forecast(avg_energy, weather_cluster, holiday_index)
+        st.write("### Energy Consumption Forecast")
+        st.write(f"Predicted Energy Consumption: {forecast_result:.2f} units")
+
+if __name__ == "__main__":
+    main()

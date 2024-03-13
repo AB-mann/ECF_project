@@ -1,0 +1,5 @@
+
+conda create --name myenv
+conda activate myenv
+conda install streamlit
+streamlit run projectecp.py

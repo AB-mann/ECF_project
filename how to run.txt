@@ -1,0 +1,15 @@
+1- Run the whole "PROJECT-CDAC (ENERGY CONSUMPTION SMART METERS IN LONDON)" notebook (ipynb).
+ - two file will get created, which are "enerrgy.csv" and "trainingmodel.pkl".
+ - the "enerrgy.csv" file will be used in the code itself
+  (p.s- make sure to delete this file everytime before you run the whole notebook) 
+ - the "trainingmodel.pkl" file we will load into "spyder" or "vscode" and create "projectecp.py" file(code is provided)
+
+2- go to "spyder" or "vscode" and copy the provided code of "projectecp.py"
+ - save that file.
+
+3- go to "anaconda prompt" and run the given code as given in order. (alredy provided) 
+ -for this we have to create an enviroment named "myenv" (code also available in provided txt files)
+ -last process in this will be to run "streamlit run projectecp.py"
+
+4-you'll be directed to streamlit 
+ - give input as "avrage energy" and click on predict. 
